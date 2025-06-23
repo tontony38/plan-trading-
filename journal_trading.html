@@ -80,6 +80,16 @@
       text-align: center;
     }
 
+    .winning {
+      color: green;
+      font-weight: bold;
+    }
+
+    .losing {
+      color: red;
+      font-weight: bold;
+    }
+
     .delete-btn {
       color: red;
       cursor: pointer;
@@ -133,6 +143,7 @@
         <th>TP</th>
         <th>Lot</th>
         <th>Résultat (€)</th>
+        <th>Statut</th>
         <th>Supprimer</th>
       </tr>
     </thead>
@@ -170,6 +181,8 @@
       journalBody.innerHTML = "";
       trades.forEach((trade, index) => {
         const row = document.createElement("tr");
+        const statusText = trade.result >= 0 ? 'Gagnant' : 'Perdant';
+        const statusClass = trade.result >= 0 ? 'winning' : 'losing';
         row.innerHTML = `
           <td>${trade.date}</td>
           <td>${trade.asset}</td>
@@ -179,6 +192,7 @@
           <td>${trade.tp}</td>
           <td>${trade.lot}</td>
           <td>${trade.result.toFixed(2)}</td>
+          <td class="${statusClass}">${statusText}</td>
           <td><span class="delete-btn" onclick="deleteTrade(${index})">✖</span></td>
         `;
         journalBody.appendChild(row);
