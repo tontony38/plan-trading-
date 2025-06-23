@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Journal de Trading</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f4f4f4;
+      color: #111;
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 2.5rem;
+    }
+
+    .capital-box {
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 1.2rem;
+    }
+
+    .capital-box input {
+      font-size: 1.2rem;
+      font-weight: bold;
+      width: 100px;
+      text-align: center;
+      border: none;
+      border-bottom: 2px solid #ccc;
+    }
+
+    form label {
+      display: block;
+      margin-top: 15px;
+      font-weight: 600;
+    }
+
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 6px;
+      font-size: 1rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      background: #111;
+      color: #fff;
+      border: none;
+      margin-top: 20px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #333;
+    }
+
+    table {
+      width: 100%;
+      margin-top: 40px;
+      border-collapse: collapse;
+      background: #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+      text-align: center;
+    }
+
+    .delete-btn {
+      color: red;
+      cursor: pointer;
+    }
+
+    .error-message {
+      color: red;
+      margin-top: 10px;
+      text-align: center;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>Journal de Trading</h1>
+
+  <div class="capital-box">
+    Capital actuel : <input type="number" id="capitalInput" value="1000" step="0.01" /> €
+  </div>
+
+  <form id="tradeForm">
+    <label>Actif</label>
+    <input type="text" id="asset" required />
+    <label>Direction</label>
+    <select id="direction">
+      <option value="Achat">Achat</option>
+      <option value="Vente">Vente</option>
+    </select>
+    <label>Entrée</label>
+    <input type="number" id="entry" step="0.0001" required />
+    <label>Stop Loss</label>
+    <input type="number" id="sl" step="0.0001" required />
+    <label>Take Profit</label>
+    <input type="number" id="tp" step="0.0001" required />
+    <label>Taille (lot)</label>
+    <input type="number" id="lot" step="0.01" required />
+    <label>Résultat (€)</label>
+    <input type="number" id="result" step="0.01" required />
+    <button type="submit">Ajouter le trade</button>
+    <div class="error-message" id="errorMsg"></div>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Actif</th>
+        <th>Direction</th>
+        <th>Entrée</th>
+        <th>SL</th>
+        <th>TP</th>
+        <th>Lot</th>
+        <th>Résultat (€)</th>
+        <th>Supprimer</th>
+      </tr>
+    </thead>
+    <tbody id="journal-body"></tbody>
+  </table>
+
+  <script>
+    let trades = JSON.parse(localStorage.getItem("trades")) || [];
+    let capital = parseFloat(localStorage.getItem("capital")) || 1000;
+
+    const form = document.getElementById('tradeForm');
+    const journalBody = document.getElementById('journal-body');
+    const capitalInput = document.getElementById('capitalInput');
+    const errorMsg = document.getElementById('errorMsg');
+
+    capitalInput.value = capital.toFixed(2);
+
+    capitalInput.addEventListener('change', () => {
+      capital = parseFloat(capitalInput.value);
+      localStorage.setItem("capital", capital);
+    });
+
+    function renderTrades() {
+      journalBody.innerHTML = "";
+      trades.forEach((trade, index) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${trade.date}</td>
+          <td>${trade.asset}</td>
+          <td>${trade.direction}</td>
+          <td>${trade.entry}</td>
+          <td>${trade.sl}</td>
+          <td>${trade.tp}</td>
+          <td>${trade.lot}</td>
+          <td>${trade.result.toFixed(2)}</td>
+          <td><span class="delete-btn" onclick="deleteTrade(${index})">✖</span></td>
+        `;
+        journalBody.appendChild(row);
+      });
+    }
+
+    function deleteTrade(index) {
+      capital -= trades[index].result;
+      trades.splice(index, 1);
+      localStorage.setItem("trades", JSON.stringify(trades));
+      localStorage.setItem("capital", capital);
+      capitalInput.value = capital.toFixed(2);
+      renderTrades();
+    }
+
+    form.addEventListener("submit", function(e) {
+      e.preventDefault();
+
+      const asset = document.getElementById("asset").value;
+      const direction = document.getElementById("direction").value;
+      const entry = parseFloat(document.getElementById("entry").value);
+      const sl = parseFloat(document.getElementById("sl").value);
+      const tp = parseFloat(document.getElementById("tp").value);
+      const lot = parseFloat(document.getElementById("lot").value);
+      const result = parseFloat(document.getElementById("result").value);
+
+      if (!asset || isNaN(entry) || isNaN(sl) || isNaN(tp) || isNaN(lot) || isNaN(result)) {
+        errorMsg.textContent = "Merci de remplir tous les champs correctement.";
+        return;
+      }
+
+      errorMsg.textContent = "";
+      const date = new Date().toLocaleDateString();
+      const trade = { date, asset, direction, entry, sl, tp, lot, result };
+      trades.push(trade);
+      capital += result;
+
+      localStorage.setItem("trades", JSON.stringify(trades));
+      localStorage.setItem("capital", capital);
+      capitalInput.value = capital.toFixed(2);
+
+      renderTrades();
+      form.reset();
+    });
+
+    renderTrades();
+  </script>
+</body>
+</html>
